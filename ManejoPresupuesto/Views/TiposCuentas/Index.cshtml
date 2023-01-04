@@ -8,7 +8,7 @@
         El tipo de cuenta se refiere a como podemos agrupar cuentas.
         Ejemplos: Prestamos, tarjetas de crédito, etc.
     </h5>
-    <a asp-action="Crear" class="btn btn-primary mb-3" >Crear Nuevo</a>
+    <a asp-action="Crear" class="btn btn-primary mb-3">Crear Nuevo</a>
     <table class="table">
         <thead>
             <tr>
@@ -20,11 +20,12 @@
                 </th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="reordenable">
             @foreach (var tipoCuenta in Model)
             {
                 <tr>
                     <td>
+                        <input type="hidden" value="@tipoCuenta.Id" class="ids" />
                         <a class="btn btn-primary" asp-action="Editar" asp-route-id="@tipoCuenta.Id">Editar</a>
                         <a class="btn btn-danger" asp-action="Borrar" asp-route-id="@tipoCuenta.Id">Borrar</a>
                     </td>
@@ -36,3 +37,42 @@
         </tbody>
     </table>
 </div>
+
+@section Scripts{
+    <script>
+
+        const urlOrdenar = '@Url.Action("ordenar")';
+
+        $(function () {
+            $("#reordenable").sortable({
+                stop: async function(e, ui){
+                    await actualizarOrdenes();
+                }
+            });
+
+            async function actualizarOrdenes(){
+                const ids = obtenerIdsDeElementos();
+               await enviarIdsAlBackend(ids);
+            }
+
+            function obtenerIdsDeElementos(){
+                const ids = $(".ids").map(function(){
+                    return $(this).val();
+                }).get();
+
+                return ids;
+            }
+
+            async function enviarIdsAlBackend(ids){
+                var data = JSON.stringify(ids);
+                await fetch(urlOrdenar, {
+                    method: 'POST',
+                    body: data,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
+        })
+    </script>
+}

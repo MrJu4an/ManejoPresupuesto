@@ -12,6 +12,7 @@ namespace ManejoPresupuesto.Servicios
         Task<bool> Existe(string nombre, int usuarioId);
         Task<IEnumerable<TipoCuenta>> Obtener(int usuarioId);
         Task<TipoCuenta> ObtenerPorId(int id, int usuarioId);
+        Task Ordenar(IEnumerable<TipoCuenta> tipoCuentasOrdenados);
     }
     public class RepositorioTiposCuentas : IRepositorioTiposCuentas
     {
@@ -25,12 +26,11 @@ namespace ManejoPresupuesto.Servicios
         {
             using var connection = new SqlConnection(connectionString);
 
-            var qry = $@"INSERT INTO TiposCuentas 
-                        (Nombre, UsuarioId, Orden)
-                        VALUES (@Nombre, @UsuarioId, 0);
-                        SELECT SCOPE_IDENTITY();";
+            var qry = "TiposCuentas_Insertar";
 
-            var id = await connection.QuerySingleAsync<int>(qry, tipoCuenta);
+            var id = await connection.QuerySingleAsync<int>(qry, new {usuarioId = tipoCuenta.UsuarioId,
+                                                                        nombre = tipoCuenta.Nombre},
+                                                                        commandType: System.Data.CommandType.StoredProcedure);
 
             tipoCuenta.Id = id;
         }
@@ -55,7 +55,8 @@ namespace ManejoPresupuesto.Servicios
 
             var qry = $@"SELECT Id, Nombre, Orden
                         FROM TiposCuentas
-                        WHERE UsuarioId = @UsuarioId";
+                        WHERE UsuarioId = @UsuarioId
+                        ORDER BY Orden";
             return await connection.QueryAsync<TipoCuenta>(qry, new { usuarioId });
         }
 
@@ -89,6 +90,15 @@ namespace ManejoPresupuesto.Servicios
                         WHERE Id = @Id";
 
             await connection.ExecuteAsync(qry, new { id });
+        }
+
+        public async Task Ordenar(IEnumerable<TipoCuenta> tipoCuentasOrdenados)
+        {
+            var qry = $@"UPDATE TiposCuentas SET Orden = @Orden
+                       WHERE Id = @Id;";
+            using var connection = new SqlConnection(connectionString);
+            await connection.ExecuteAsync(qry, tipoCuentasOrdenados);
+
         }
     }
 }
