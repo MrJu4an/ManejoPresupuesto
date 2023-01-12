@@ -84,6 +84,9 @@ namespace ManejoPresupuesto.Controllers
                 return RedirectToAction("NoEncontrado", "Home");
             }
             var modelo = mapper.Map<TransaccionActualizacionViewModel>(transaccion);
+
+            modelo.MontoAnterior = modelo.Monto;
+
             if (modelo.TipoOperacionId == TipoOperacionId.Gasto)
             {
                 modelo.MontoAnterior = modelo.Monto * -1;
@@ -94,6 +97,54 @@ namespace ManejoPresupuesto.Controllers
             modelo.Cuentas = await ObtenerCuentas(usuarioid);
 
             return View(modelo);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Editar(TransaccionActualizacionViewModel modelo)
+        {
+            var usuarioId = servicioUsuarios.ObtenerUsuarioId();
+            if (!ModelState.IsValid)
+            {
+                modelo.Cuentas = await ObtenerCuentas(usuarioId);
+                modelo.Categorias = await ObtenerCategorias(usuarioId, modelo.TipoOperacionId);
+                return View(modelo);
+            }
+
+            var cuenta = await repositorioCuentas.ObtenerPorId(modelo.CuentaId, usuarioId);
+            if (cuenta is null)
+            {
+                return RedirectToAction("NoEncontrado", "Home");
+            }
+
+            var categoria = await repositorioCategorias.ObtenerPorId(modelo.CategoriaId, usuarioId);
+            if(categoria is null)
+            {
+                return RedirectToAction("NoEncontrado", "Home");
+            }
+
+            var transaccion = mapper.Map<Transaccion>(modelo);
+            if (modelo.TipoOperacionId == TipoOperacionId.Gasto)
+            {
+                transaccion.Monto *= -1;
+            }
+            await repositorioTransacciones.Actualizar(transaccion, modelo.MontoAnterior, modelo.CuentaAnteriorId);
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Borrar(int id)
+        {
+            var usuarioId = servicioUsuarios.ObtenerUsuarioId();
+            var transaccion = await repositorioTransacciones.ObtenerPorId(id, usuarioId);
+
+            if (transaccion is null)
+            {
+                return RedirectToAction("NoEncontrado", "Home");
+            }
+
+            await repositorioTransacciones.Borrar(id);
+            return RedirectToAction("Index");
         }
 
         private async Task<IEnumerable<SelectListItem>> ObtenerCuentas(int usuarioId)

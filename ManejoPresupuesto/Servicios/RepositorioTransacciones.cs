@@ -7,6 +7,8 @@ namespace ManejoPresupuesto.Servicios
 
     public interface IRepositorioTransacciones
     {
+        Task Actualizar(Transaccion transaccion, decimal MontoAnterior, int cuentaAnterior);
+        Task Borrar(int id);
         Task Crear(Transaccion transaccion);
         Task<Transaccion> ObtenerPorId(int id, int usuarioId);
     }
@@ -37,7 +39,7 @@ namespace ManejoPresupuesto.Servicios
             transaccion.Id = id;
         }
         
-        public async Task Actualizar(Transaccion transaccion, decimal MontoAnterior, int cuentaAnterior)
+        public async Task Actualizar(Transaccion transaccion, decimal MontoAnterior, int cuentaAnteriorId)
         {
             using var connection = new SqlConnection(connectionString);
             await connection.ExecuteAsync("Transacciones_Actualizar", 
@@ -46,11 +48,11 @@ namespace ManejoPresupuesto.Servicios
                     transaccion.Id, 
                     transaccion.FechaTransaccion,
                     transaccion.Monto,
-                    transaccion.CategoriaId,
+                    transaccion.CategoriaId, 
                     transaccion.CuentaId,
                     transaccion.Nota,
                     MontoAnterior,
-                    cuentaAnterior
+                    cuentaAnteriorId
                 }, commandType: System.Data.CommandType.StoredProcedure);
         }
 
@@ -63,6 +65,17 @@ namespace ManejoPresupuesto.Servicios
                         ON cat.Id = Transacciones.CategoriaId
                         WHERE Transacciones.Id = @Id AND Transacciones.UsuarioId = @UsuarioId;";
             return await connection.QueryFirstOrDefaultAsync<Transaccion>(qry, new { id, usuarioId });
+        }
+
+        public async Task Borrar(int id)
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.ExecuteAsync("Transacciones_Borrar", 
+                new
+                {
+                    id
+                },
+            commandType: System.Data.CommandType.StoredProcedure);
         }
     }
 }
